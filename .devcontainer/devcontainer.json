@@ -1,0 +1,9 @@
+{
+	"name": "vcpkg-crosscompile",
+	"build": {
+		"dockerfile": "./Dockerfile"
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/powershell:1": {}
+	}
+}

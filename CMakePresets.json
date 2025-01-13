@@ -1,0 +1,51 @@
+{
+	"version": 6,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 25,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "amd64-linux",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"installDir": "${sourceDir}/dist/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+
+				"VCPKG_TARGET_TRIPLET": "x64-linux",
+				"VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/toolchains/linux.cmake"
+			}
+		},
+		{
+			"name": "amd64-mingw",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"installDir": "${sourceDir}/dist/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/custom-triplets",
+
+				"VCPKG_TARGET_TRIPLET": "amd64-mingw",
+				"VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/custom-triplets/amd64-mingw-toolchain.cmake"
+			}
+		},
+		{
+			"name": "arm64-linux-musl",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"installDir": "${sourceDir}/dist/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/custom-triplets",
+
+				"VCPKG_TARGET_TRIPLET": "arm64-linux-musl",
+				"VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/custom-triplets/arm64-linux-musl-toolchain.cmake"
+			}
+		}
+	]
+}
