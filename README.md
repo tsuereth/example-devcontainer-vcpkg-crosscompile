@@ -20,11 +20,11 @@ Defining the development environment's setup steps in a [Dev Container](https://
 
 ![vcpkg logo](README-images/vcpkg-logo.png) ![cmake logo](README-images/cmake-logo.png)
 
-* **vcpkg and CMake** are used to download and configure the project's external code dependencies.
+**vcpkg and CMake** are used to download and configure the project's external code dependencies.
 
 External library re-use is important when developing applications, to accelerate common patterns and to correctly integrate external services.  But fans of modern dev package managers, like C#'s NuGet and Node.js's NPM, may be surprised that there's no *de facto* equivalent for C and C++; there are multiple community-supported options, each with their own strengths and weaknesses.
 
-This example leverages the combination of [vcpkg](https://vcpkg.io/), which retrieves software packages from a "ports" repository, and [CMake](https://cmake.org/), which describes how those packages are built from source.  This source-based dependency approach is helpful when cross-compiling, and both tools are expected to receive ongoing support (such as library updates and language specification maintenance) due to their industry sponsorship and widespread adoption.
+This example leverages the combination of [vcpkg](https://vcpkg.io/), which retrieves software packages from a "ports" repository, and [CMake](https://cmake.org/), which describes how those packages are built from source.  This source-based dependency approach is helpful when cross-compiling.  And this package management option is expected to be well-supported into the future, due to these tools' industry sponsorship and widespread adoption.
 
 ![mingw-w64 logo](README-images/mingw-w64-logo.png) ![musl logo](README-images/musl-logo.png)
 
@@ -54,7 +54,7 @@ While a Dev Container takes cares of the project's development environment, *run
 
 In this step we define the Dev Container, and how to create and use it in your host environment.
 
-1. Create a `.devcontainers` directory, and a file in it named `devcontainer.json`.  This is a [special filepath](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_create-a-devcontainerjson-file) commonly recognized by IDEs as the definition for a default Dev Container.
+Create a `.devcontainers` directory, and a file in it named `devcontainer.json`.  This is a [special filepath](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_create-a-devcontainerjson-file) commonly recognized by IDEs as the definition for a default Dev Container.
 
 `.devcontainers/devcontainer.json`
 ```json
@@ -73,7 +73,7 @@ This Dev Container definition combines a `"build"` Dockerfile's container image 
 
 *Hypothetical improvements on this Dev Container might re-implement the Dockerfile's steps as `"features"`, or might replace all of the Dockerfile and `"features"` steps with a pre-built container image; in practice, every project should strike its own balance of re-usable vs. bespoke definitions.*
 
-2. Create a file named `Dockerfile` in that same directory.  This fills out the `"dockerfile"` referenced by that `devcontainer.json` file.
+Now create a file named `Dockerfile` in that same directory.  This fills out the `"dockerfile"` referenced by that `devcontainer.json` file.
 
 `.devcontainers/Dockerfile`
 ```dockerfile
@@ -93,7 +93,7 @@ This Docker image definition starts with a [C++ Dev Container image from Microso
 
 *Dockerfiles, Ubuntu and apt, gcc and g++, MinGW-w64, glibc and musl -- are all interesting topics outside the scope of this README.  Would you like to know more?  Search the interweb!*
 
-3. (Assuming VS Code) Create a `.vscode` directory, and a file in it named `extensions.json`.  This is a [special filepath](https://code.visualstudio.com/docs/editor/extension-marketplace#_workspace-recommended-extensions) to suggest that VS Code install [the Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) if it isn't installed already.
+(Assuming VS Code) Create a `.vscode` directory, and a file in it named `extensions.json`.  This is a [special filepath](https://code.visualstudio.com/docs/editor/extension-marketplace#_workspace-recommended-extensions) to suggest that VS Code install [the Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) if it isn't installed already.
 
 `.vscode/extensions.json`
 ```json
@@ -112,13 +112,11 @@ And after the extension is installed, VS Code will suggest re-opening the folder
 
 ![devcontainer setup vscode reopen](README-images/devcontainer-setup-vscode-reopen.png)
 
-This completes Dev Container setup; subsequent steps will use the container's environment to execute development workflows.
+This completes Dev Container setup.  Subsequent steps will use the container's environment to execute development workflows.
 
-## Writing the Project Code
+## Initializing vcpkg
 
-In this step, we define the example application's code files, its dependencies, and how to build them together.
-
-1. Within the Dev Container, set up vcpkg for the application.
+Within the Dev Container, set up vcpkg for the application, so the build system can retrieve dependencies from vcpkg's registry.
 
 (Assuming VS Code) After an IDE has created the Dev Container, the IDE may require some UI manipulation to access the container's terminal:
 
@@ -126,11 +124,11 @@ In this step, we define the example application's code files, its dependencies, 
 
 ![projectcode changeterminal](README-images/projectcode-changeterminal.png)
 
-Now, from a command shell inside the Dev Container, run `vcpkg new --application` to initialize vcpkg; this fetches some scripts and data from vcpkg's most-recent [git version](https://github.com/microsoft/vcpkg).
+Now, from a command shell inside the Dev Container, run `vcpkg new --application` to initialize vcpkg.  This fetches some scripts and data from vcpkg's most-recent [git version](https://github.com/microsoft/vcpkg).
 
 ![projectcode vcpkgnew](README-images/projectcode-vcpkgnew.png)
 
-This will produce two new files in the current directory: a default `vcpkg-configuration.json` which records that vcpkg git version and port registry info; and an empty `vcpkg.json` describing project settings like dependencies (which haven't been added yet).
+This will generate two new files in the current directory: a default `vcpkg-configuration.json` which records that vcpkg git version and port registry info; and an empty `vcpkg.json` describing project settings like dependencies (which haven't been added yet).
 
 `vcpkg-configuration.json`
 ```json
@@ -172,9 +170,11 @@ This records the new dependency in `vcpkg.json`, instructing vcpkg's build scrip
 }
 ```
 
-2. Write the application build definitions (CMake files).
+## Defining builds in CMake
 
-But first, a small detour: create a file named `main.cpp` with a placeholder `main()` entrypoint so that the project will have *something* to compile.
+The application's build definitions will be written in CMake files, specifically in [a CMakeLists file](https://cmake.org/cmake/help/book/mastering-cmake/chapter/Getting%20Started.html#cmakelists-files) describing the sources used by the project, and in [CMake configuration "presets"](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) to implement build settings needed for cross-compilation.
+
+*But first*, a small detour: create a file named `main.cpp` with a placeholder `main()` entrypoint so that the project will have something to compile.
 
 `main.cpp`
 ```cpp
@@ -184,7 +184,7 @@ int main(void)
 }
 ```
 
-And a file named `CMakeLists.txt` with placeholder compile and link settings.  These settings will also install the httplib dependency, though it isn't being used just yet.
+And a file named `CMakeLists.txt` with some basic compile and link settings (which this guide will revise in a later step).  These settings will also install the httplib dependency, though it isn't being used just yet.
 
 `CMakeLists.txt`
 ```cmake
@@ -202,10 +202,10 @@ install(TARGETS HttpDemo RUNTIME DESTINATION bin)
 target_link_libraries(HttpDemo PRIVATE -static-libstdc++ -static-libgcc)
 ```
 
-Here's where the build definitions get interesting: create a file named `CMakePresets.json`, where the project will define its [CMake configuration "presets"](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html).
+Here's where the build definitions get interesting: create a file named `CMakePresets.json`, where the project will define the project's [configuration presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html#configure-preset).
 
 `CMakePresets.json`
-```
+```json
 {
 	"version": 6,
 	"cmakeMinimumRequired": {
@@ -218,6 +218,7 @@ Here's where the build definitions get interesting: create a file named `CMakePr
 			"name": "amd64-linux",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/${presetName}",
+			"installDir": "${sourceDir}/dist/${presetName}",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
 				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
@@ -230,6 +231,7 @@ Here's where the build definitions get interesting: create a file named `CMakePr
 			"name": "amd64-mingw",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/${presetName}",
+			"installDir": "${sourceDir}/dist/${presetName}",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
 				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
@@ -243,6 +245,7 @@ Here's where the build definitions get interesting: create a file named `CMakePr
 			"name": "arm64-linux-musl",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/${presetName}",
+			"installDir": "${sourceDir}/dist/${presetName}",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
 				"CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
@@ -256,20 +259,21 @@ Here's where the build definitions get interesting: create a file named `CMakePr
 }
 ```
 
-CMake will use these "preset" settings to configure each build type for the project.  Literally, the CMake configuration step will *generate* build files (including [Ninja](https://ninja-build.org/) build scripts), to be invoked by following build and install steps.
+CMake will use these "preset" settings groups to configure each build type for the project.  Literally, CMake's configuration step will *generate* build files (including [Ninja](https://ninja-build.org/) build scripts), to be invoked by following build and install steps.
 
-These CMake configurations use settings defined by vcpkg (the `vcpkg.cmake` file in vcpkg's installation root).  This [link between CMake and vcpkg](https://learn.microsoft.com/en-us/vcpkg/users/buildsystems/cmake-integration) is how the dependency-management system really works: functions like `find_package()` are implemented by vcpkg's CMake files, and those functions invoke `vcpkg` itself to resolve and manage the requested packages.
+Those build files include vcpkg logic through each preset's `CMAKE_TOOLCHAIN_FILE` (the `vcpkg.cmake` file in vcpkg's installation root).  This [link between CMake and vcpkg](https://learn.microsoft.com/en-us/vcpkg/users/buildsystems/cmake-integration) is how the dependency-management system really works: functions like `find_package()` are implemented in vcpkg's CMake files, and those functions invoke `vcpkg` itself to find and download packages.
 
-Critically in this project, vcpkg [defines a triplet concept](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets) to collect the host- and target-specific settings needed to cross-compile.  Although the triplet alone doesn't fully define how code is compiled -- more about this in a moment.
+Critically in this project, vcpkg [defines a triplet concept](https://learn.microsoft.com/en-us/vcpkg/concepts/triplets) to collect the host- and target-specific settings needed to cross-compile.  Although the triplet alone doesn't fully define *how code is compiled* -- more about this in a moment.
 
-This example has three preset configurations:
+Three configuration presets are defined in this example:
+
 * "amd64-linux" prepares to build for an AMD64 Linux target, just like the Dev Container itself.  It uses vcpkg's built-in settings and defaults to select a compiler toolchain targeting the current host system.
 * "amd64-mingw" prepares to build for an AMD64 Windows target.  This build will require the cross-compiling tools installed by the `g++-mingw-w64-x86-64` apt package in the Dev Container.
 * "arm64-linux-musl" prepares to build for an ARM64 Linux target with the musl libc at runtime (as opposed to GNU's glibc).  This build will require the cross-compiling tools downloaded from [musl.cc](https://musl.cc/) in the Dev Container.
 
-Notice that the amd64-mingw and arm64-linux-musl configurations define [VCPKG_OVERLAY_TRIPLETS](https://learn.microsoft.com/en-us/vcpkg/users/examples/overlay-triplets-linux-dynamic) and use custom triplet and toolchain files, instead of vcpkg's built-in files.  The custom triplet and toolchain files are part of this example project, too.
+Notice that the amd64-mingw and arm64-linux-musl configurations define [VCPKG_OVERLAY_TRIPLETS](https://learn.microsoft.com/en-us/vcpkg/users/examples/overlay-triplets-linux-dynamic) and use custom triplet and toolchain files, instead of vcpkg's built-in files.  When vcpkg is given an Overlay Triplets path, and when the Target Triplet matches a file in that path, vcpkg and CMake will apply build settings in that file.
 
-Create a `custom-triplets` directory, and a file in it named `amd64-mingw.cmake`.  When vcpkg is given this directory as the Overlay Triplets path, and a matching triplet name, it will use build settings from this file.
+This example project must provide those custom triplet and toolchain files, too.  Create a `custom-triplets` directory, and a file in it named `amd64-mingw.cmake`.
 
 `custom-triplets/amd64-mingw.cmake`
 ```cmake
@@ -284,9 +288,9 @@ set(VCPKG_POLICY_DLLS_WITHOUT_LIBS enabled)
 set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/amd64-mingw-toolchain.cmake")
 ```
 
-This triplet file is mostly copied from a [community-provided "x64-mingw-dynamic" triplet](https://github.com/microsoft/vcpkg/blob/master/triplets/community/x64-mingw-dynamic.cmake), but with the addition of a [VCPKG_CHAINLOAD_TOOLCHAIN_FILE](https://learn.microsoft.com/en-us/vcpkg/users/triplets#vcpkg_chainload_toolchain_file) which enforces compiler and linker settings when building for the target triplet.  (Without this toolchain file, CMake will use compiler and linker settings from its own defaults, which isn't what we want.)
+This triplet file is mostly copied from a [community-provided "x64-mingw-dynamic" triplet](https://github.com/microsoft/vcpkg/blob/master/triplets/community/x64-mingw-dynamic.cmake), but with the addition of a [VCPKG_CHAINLOAD_TOOLCHAIN_FILE](https://learn.microsoft.com/en-us/vcpkg/users/triplets#vcpkg_chainload_toolchain_file) which enforces compiler and linker settings.  Without this toolchain file, CMake will use compiler and linker settings from its own defaults, which won't meet this project's cross-compilation needs.
 
-Now create this file in this same directory, named `amd64-mingw-toolchain.cmake`.
+Create this toolchain file in this same directory, named `amd64-mingw-toolchain.cmake`.
 
 `custom-triplets/amd64-mingw-toolchain.cmake`
 ```cmake
@@ -305,12 +309,12 @@ if(NOT _AMD64_MINGW_TOOLCHAIN)
 endif()
 ```
 
-This toolchain file does largely re-use vcpkg's [mingw toolchain](https://github.com/microsoft/vcpkg/blob/master/scripts/toolchains/mingw.cmake), but forces C and C++ compilation to use the "-posix" variants of MinGW-w64's tools -- which have fuller compatibility with code written to use POSIX threading (pthreads).  It also forces [CMAKE_BUILD_WITH_INSTALL_RPATH](https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_WITH_INSTALL_RPATH.html) on, which conforms to Windows norms about the runtime dependency path (rpath) *i.e.* will build with the assumption that an executable and its dependency DLLs get installed to the same directory.
+This toolchain file does largely re-use vcpkg's [mingw toolchain](https://github.com/microsoft/vcpkg/blob/master/scripts/toolchains/mingw.cmake), but forces C and C++ compilation to use the `-posix` variants of MinGW-w64's tools -- which have fuller compatibility with code written to use POSIX threading functions (pthreads).  It also forces [CMAKE_BUILD_WITH_INSTALL_RPATH](https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_WITH_INSTALL_RPATH.html) on, which conforms to Windows norms about the runtime dependency path (rpath) *i.e.* will build with the assumption that an executable and its dependency DLLs are installed to the same directory.
 
-Now it's time to prepare custom triplet and toolchain files for the arm64-linux-musl configuration.  Create a file in the `custom-triplets` directory named `arm64-linux-musl.cmake`.
+Now it's time to prepare custom triplet and toolchain files for the arm64-linux-musl configuration.  Create another file in the `custom-triplets` directory named `arm64-linux-musl.cmake`.
 
 `custom-triplets/arm64-linux-musl.cmake`
-```
+```cmake
 set(VCPKG_TARGET_ARCHITECTURE arm64)
 set(VCPKG_CRT_LINKAGE dynamic)
 set(VCPKG_LIBRARY_LINKAGE static)
@@ -320,12 +324,12 @@ set(VCPKG_CMAKE_SYSTEM_NAME Linux)
 set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/arm64-linux-musl-toolchain.cmake")
 ```
 
-Like the other custom triplet file, this is largely copied from a [community-provided "arm64-linux" triplet](https://github.com/microsoft/vcpkg/blob/master/triplets/community/arm64-linux.cmake), adding a toolchain reference to enforce appropriate compiler and linker settings.
+Like the other custom triplet file, this is mostly copied from a [community-provided "arm64-linux" triplet](https://github.com/microsoft/vcpkg/blob/master/triplets/community/arm64-linux.cmake), adding a toolchain reference to set appropriate compiler and linker settings.
 
 Finally, create that toolchain file in this same directory, `arm64-linux-musl-toolchain.cmake`.
 
 `custom-triplets/arm64-linux-musl-toolchain.cmake`
-```
+```cmake
 if(NOT _ARM64_LINUX_MUSL_TOOLCHAIN)
     set(_ARM64_LINUX_MUSL_TOOLCHAIN 1)
 
@@ -342,7 +346,9 @@ if(NOT _ARM64_LINUX_MUSL_TOOLCHAIN)
 endif()
 ```
 
-This toolchain file re-uses vcpkg's [linux toolchain](https://github.com/microsoft/vcpkg/blob/master/scripts/toolchains/linux.cmake), then overwrites the default C and C++ compilers with the musl-targeting tools installed in the Dev Container.  (Recall that the `AARCH64_LINUX_MUSL_CROSS_PREFIX` environment variable was set in the Dev Container's Dockerfile; this is where it's finally used!)
+*(Recall that an `AARCH64_LINUX_MUSL_CROSS_PREFIX` environment variable was set in the Dev Container's Dockerfile; this is where it's finally used!)*
+
+This toolchain file re-uses vcpkg's [linux toolchain](https://github.com/microsoft/vcpkg/blob/master/scripts/toolchains/linux.cmake), then overwrites the default C and C++ compilers with the musl-targeting tools installed in the Dev Container.
 
 *Phew!*  Now that the CMake and vcpkg and cross-compilation configurations are all in place, the project can create builds for each of its three target configurations.  If you want to test that out now (before finishing the example application's code) skip ahead to the command-line and VS Code build instructions later in this guide.
 
@@ -350,14 +356,14 @@ If you're using VS Code and the [CMake extension](https://marketplace.visualstud
 
 ![projectcode commandpalette](README-images/projectcode-commandpalette.png)
 
-3. Write (the rest of) the application code.
+## Writing the application code
 
-Now that the build system is ready, it's time to finish the example application's code.
+Now that the build system is ready, it's time to write (the rest of) the example application's code.
 
-Go back to `main.cpp` and rewrite `main()` to start a simple HTTP server.  The [cpp-httplib package's repository](https://github.com/yhirose/cpp-httplib) includes some straightforward documentation on how to do this.
+Go back to `main.cpp` and rewrite `main()` to start a simple HTTP server.  The [cpp-httplib package's repository](https://github.com/yhirose/cpp-httplib) includes some straightforward documentation and examples of how to implement this.
 
 `main.cpp`
-```
+```cpp
 #include <httplib.h>
 
 int main(void)
@@ -379,7 +385,7 @@ int main(void)
 Then re-open `CMakeLists.txt` and add the `target_link_libraries()` CMake function call, to use the httplib library being built through vcpkg.  The changes here also add some `MINGW` build settings described below.
 
 `CMakeLists.txt`
-```
+```cmake
 cmake_minimum_required(VERSION 3.25)
 
 project(HttpDemo)
@@ -404,21 +410,21 @@ target_link_libraries(HttpDemo PRIVATE -static-libstdc++ -static-libgcc)
 
 For `MINGW` builds, this change adds a link flag `-lws2_32` to link with the [Winsock 2 library](https://learn.microsoft.com/en-us/windows/win32/winsock/creating-a-basic-winsock-application) (ws2_32).  This project's httplib dependency relies on socket functions which, on Windows, are ultimately implemented by Winsock.
 
-Also for `MINGW` builds, this adds `-Wl,...` [link options](https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html) syntax which specifies that the MinGW-w64 library which implements POSIX threads, `-lwinpthread`, should be linked statically (instead of dynamically).  This slightly simplifies the build output, but is mostly just to demonstrate how to individually select which dependency libraries are statically linked into the executable versus dynamically linked in separate runtime artifacts.
+Also for `MINGW` builds, this adds `-Wl,...` [link options](https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html) syntax which specifies that the MinGW-w64 library implementing POSIX threads, `-lwinpthread`, should be linked statically (instead of dynamically).  This is an example of how to individually select which dependency libraries are statically linked into the executable versus dynamically linked in separate runtime artifacts.
 
-Lastly, the new `install()` line for `MINGW` ensures that any non-static linker dependencies - libraries which are in the list of TARGET_RUNTIME_DLLS for the application - are added to the install step's list of BIN files.  In other words, DLLs needed by this executable will be copied into the executable's install location.
+Lastly, the new `install()` line for `MINGW` ensures that any non-static linker dependencies - libraries which are in the list of `TARGET_RUNTIME_DLLS` for the application - are added to the install step's list of `BIN` files.  In other words, DLLs needed by this executable will be copied into the executable's install location.
 
-(Why is this behavior specific to `MINGW` builds?  The other build types are configured to link statically anyway -- so there are no extra DLL artifacts.  In a more complex project, these static-versus-dynamic linking and DLL-installation settings would likely be made abstract from the target platform.)
+(Why is this behavior specific to `MINGW` builds?  Because the other build types are configured to link statically anyway -- so they don't have extra DLL artifacts.  In a more complex project, static-versus-dynamic linking and DLL-installation settings would likely be re-worked to separate them from the Target Triplet files.)
 
-... and that's it!
+... and that's it!  All of this project's build settings and code files are now in place.
 
 ![projectcode allfiles](README-images/projectcode-allfiles.png)
 
-Now a functional application, an HTTP server which responds to `GET /hello` requests, can be built for multiple target platforms.
+These files can be used to build the example application, an HTTP server which responds to `GET /hello` requests, for multiple target platforms.
 
-## Building It
+## Building it
 
-Using the CMake settings established above, there are three steps involved in producing an executable application.
+Using the settings established in `CMakePresets.json`, there are three steps involved in producing an executable application through CMake.
 
 1. **Configure**: A preset is used to configure the build.  This generates build files into a directory like `build/amd64-linux/...`
 2. **Build**: Those build files are executed, compiling and linking code.  This creates artifacts in that same build directory.
@@ -432,7 +438,7 @@ In Visual Studio Code, with the CMake and CMake Tools extensions (which are sugg
 
 ![build vscode cmakebuild](README-images/build-vscode-cmakebuild.png)
 
-The VS Code CMake extensions don't conveniently support running the install step, although VS Code tasks could be added (using the command-lines described below) to implement this.
+The VS Code CMake extensions don't conveniently support running the install step.  Hypothetically, VS Code tasks (using the command-lines described below) could be added for this.
 
 ---
 
@@ -474,9 +480,10 @@ Notice that the `dist/amd64-mingw/bin/` output directory contains more than just
 
 To build the arm64-linux-musl configuration from the Dev Container's command-line:
 
-arm64-linux-musl:
 ```bash
 cmake --preset arm64-linux-musl
 cmake --build ./build/arm64-linux-musl/
 cmake --install ./build/arm64-linux-musl/
 ```
+
+Like the amd64-linux build's output, this produces a single statically-linked `HttpDemo` executable.  It will run on an AArch64 system with Linux and the musl libc runtime, such as an [OpenWrt](https://openwrt.org/) device.
