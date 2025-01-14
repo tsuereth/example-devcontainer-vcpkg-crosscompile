@@ -1,6 +1,6 @@
 # Summary
 
-This repository contains a functional example of an application (a trivial HTTP server) implemented in C++, built in a devcontainer, using external dependencies from vcpkg, and cross-compiled for multiple target platforms.
+This repository contains a functional example of an application (a trivial HTTP server) implemented in C++, built in a Dev Container, using external dependencies from vcpkg, and cross-compiled for multiple target platforms.
 
 # Purpose
 
@@ -10,25 +10,31 @@ This repository is primarily for my own reference, but other developers interest
 
 # Key concepts
 
+## Dev Container
+
 ![devcontainers logo](README-images/devcontainers-logo.png)
 
-A **Dev Container** sets up the project's cross-toolchains, and other dev tool dependencies like vcpkg.
+A [Dev Container](https://containers.dev/) sets up the project's cross-toolchains, and other dev tool dependencies like vcpkg.
 
 The dependency-management and cross-compilation aspects of this project require significant environment setup, and any mistake in that setup process could result in build failures -- or even worse, an apparently-successful build whose result fails later at runtime.  It's important that whether the project is loaded on a new machine, on a new team member's system, or on an automated build agent, that development environment can be consistently re-created.
 
-Defining the development environment's setup steps in a [Dev Container](https://containers.dev/) ensures that all required tools and configuration settings are prepared by the container, regardless of the developer's (or build agent's) host system.  Many IDEs support building, running, and debugging software with Dev Containers; and GitHub Actions can use a Dev Container to build a project in workflows like Pull Requests and continuous integration.
+Defining the development environment's setup steps in a Dev Container ensures that all required tools and configuration settings are prepared by the container, regardless of the developer's (or build agent's) host system.  Many IDEs support building, running, and debugging software with Dev Containers; and GitHub Actions can use a Dev Container to build a project in workflows like Pull Requests and continuous integration.
+
+## vcpkg and CMake
 
 ![vcpkg logo](README-images/vcpkg-logo.png) ![cmake logo](README-images/cmake-logo.png)
 
-**vcpkg and CMake** are used to download and configure the project's external code dependencies.
+[vcpkg](https://vcpkg.io/) and [CMake](https://cmake.org/) are used to download and configure the project's external code dependencies.
 
 External library re-use is important when developing applications, to accelerate common patterns and to correctly integrate external services.  But fans of modern dev package managers, like C#'s NuGet and Node.js's NPM, may be surprised that there's no *de facto* equivalent for C and C++; there are multiple community-supported options, each with their own strengths and weaknesses.
 
-This example leverages the combination of [vcpkg](https://vcpkg.io/), which retrieves software packages from a "ports" repository, and [CMake](https://cmake.org/), which describes how those packages are built from source.  This source-based dependency approach is helpful when cross-compiling.  And this package management option is expected to be well-supported into the future, due to these tools' industry sponsorship and widespread adoption.
+This example leverages the combination of vcpkg, which retrieves software packages from a "ports" repository, and CMake, which describes how those packages are built from source.  This source-based dependency approach is helpful when cross-compiling.  And this package management option is expected to be well-supported into the future, due to these tools' industry sponsorship and widespread adoption.
+
+## Cross-compiling
 
 ![mingw-w64 logo](README-images/mingw-w64-logo.png) ![musl logo](README-images/musl-logo.png)
 
-**Cross-compiling** - using a Host system to produce software for a different Target system - isn't very commonly documented (or well-supported), despite being vital to common use-cases like mobile phone apps, internet-of-things appliances, and videogame consoles.  In an ideal world, the developer's or build agent's Host system would be totally irrelevant; unfortunately, each combination of Host and Target has its own quirks to figure out.
+Cross-compiling - using a Host system to produce software for a different Target system - isn't very commonly documented (or well-supported), despite being vital to common use-cases like mobile phone apps, internet-of-things appliances, and videogame consoles.  In an ideal world, the developer's or build agent's Host system would be totally irrelevant; unfortunately, each combination of Host and Target has its own quirks to figure out.
 
 But there *are* some common ways to approach these problems, which this project demonstrates using a few pre-built toolchains (installed to its Dev Container) and modular build configuration (implemented through CMake, and applied to dependencies through vcpkg).  Here, a [MinGW-w64](https://www.mingw-w64.org/) toolchain is used to produce the application for a Windows target, and a [musl-cross](https://musl.cc/) toolchain is used to produce the application for an ARM (AArch64) target with [musl libc](https://musl.libc.org/) (tested on an [OpenWrt](https://openwrt.org/) system).
 
@@ -422,13 +428,15 @@ Lastly, the new `install()` line for `MINGW` ensures that any non-static linker 
 
 These files can be used to build the example application, an HTTP server which responds to `GET /hello` requests, for multiple target platforms.
 
-## Building it
+# Building it
 
 Using the settings established in `CMakePresets.json`, there are three steps involved in producing an executable application through CMake.
 
 1. **Configure**: A preset is used to configure the build.  This generates build files into a directory like `build/amd64-linux/...`
 2. **Build**: Those build files are executed, compiling and linking code.  This creates artifacts in that same build directory.
 3. **Install**: A simulated install step copies the runtime artifacts (executables and dynamic libraries) to a directory like `dist/amd64-linux/...`
+
+## Locally
 
 In Visual Studio Code, with the CMake and CMake Tools extensions (which are suggested by the Dev Container), a "CMake" UI widget can be used to select the active build configuration...
 
@@ -487,3 +495,65 @@ cmake --install ./build/arm64-linux-musl/
 ```
 
 Like the amd64-linux build's output, this produces a single statically-linked `HttpDemo` executable.  It will run on an AArch64 system with Linux and the musl libc runtime, such as an [OpenWrt](https://openwrt.org/) device.
+
+## GitHub Actions
+
+The Dev Container definition makes it easy for an automated build agent to repeat those build processes -- especially using the [official devcontainers/ci action](https://github.com/devcontainers/ci), which encapsulates preparing the Dev Container and can then run arbitrary build commands.
+
+*In a real software project, it may also be convenient to configure this build action so that continuous integration workflows pre-build and `push` the Dev Container image; then a developer can `pull` the image from a registry rather than re-building it themselves.*
+
+This example project implements an [actions workflow](https://github.com/features/actions) which runs when triggered manually, when a Pull Request is opened, or when a change is merged or pushed to the repository's `main` branch.
+
+`.github/workflows/httpdemo.yml`
+```yaml
+name: "Build HttpDemo"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Dev Container Build amd64-linux"
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            cmake --preset amd64-linux && \
+            cmake --build ./build/amd64-linux/ && \
+            cmake --install ./build/amd64-linux/
+
+      - name: "Dev Container Build amd64-mingw"
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            cmake --preset amd64-mingw && \
+            cmake --build ./build/amd64-mingw/ && \
+            cmake --install ./build/amd64-mingw/
+
+      - name: "Dev Container Build arm64-linux-musl"
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            cmake --preset arm64-linux-musl && \
+            cmake --build ./build/arm64-linux-musl/ && \
+            cmake --install ./build/arm64-linux-musl/
+
+      - name: "Save Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          path: dist/
+```
+
+The `devcontainers/ci` action, without additional inputs like `imageName` or `configFile`, will simply build and run a Dev Container from the default definition file at `.devcontainer/devcontainer.json`.  Then the `runCmd` input executes this project's CMake command-line build steps, ultimately producing runtime binaries in the workspace's `dist/...` directory.
+
+This workflow then preserves that result with [actions/upload-artifact](https://github.com/actions/upload-artifact), so those cross-platform binaries can be downloaded from GitHub's build report.
+
+![build github artifact](README-images/build-github-artifact.png)
