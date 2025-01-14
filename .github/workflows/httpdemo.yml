@@ -1,0 +1,44 @@
+name: "Build HttpDemo"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Dev Container Build amd64-linux"
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            cmake --preset amd64-linux && \
+            cmake --build ./build/amd64-linux/ && \
+            cmake --install ./build/amd64-linux/
+
+      - name: "Dev Container Build amd64-mingw"
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            cmake --preset amd64-mingw && \
+            cmake --build ./build/amd64-mingw/ && \
+            cmake --install ./build/amd64-mingw/
+
+      - name: "Dev Container Build arm64-linux-musl"
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            cmake --preset arm64-linux-musl && \
+            cmake --build ./build/arm64-linux-musl/ && \
+            cmake --install ./build/arm64-linux-musl/
+
+      - name: "Save Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          path: dist/
