@@ -95,7 +95,7 @@ RUN tar xzf /musl.cc/aarch64-linux-musl-cross.tgz -C /
 ENV AARCH64_LINUX_MUSL_CROSS_PREFIX=/aarch64-linux-musl-cross
 ```
 
-This Docker image definition starts with a [C++ Dev Container image from Microsoft](https://github.com/devcontainers/images/tree/main/src/cpp) using Ubuntu Linux "Focal Fossa" 24.04, plus vcpkg and CMake and related dependencies; then installs the `g++-mingw-w64-x86-64` [apt package](https://packages.ubuntu.com/focal/g++-mingw-w64-x86-64) for cross-compilation tools targeting AMD64 (x86_64) Windows; then downloads and unarchives cross-compilation tools targeting 64-bit ARM (AArch64) Linux with musl's libc.
+This Docker image definition starts with a [C++ Dev Container image from Microsoft](https://github.com/devcontainers/images/tree/main/src/cpp) using Ubuntu Linux "Noble Numbat" 24.04, plus vcpkg and CMake and related dependencies; then installs the `g++-mingw-w64-x86-64` [apt package](https://packages.ubuntu.com/focal/g++-mingw-w64-x86-64) for cross-compilation tools targeting AMD64 (x86_64) Windows; then downloads and unarchives cross-compilation tools targeting 64-bit ARM (AArch64) Linux with musl's libc.
 
 *Dockerfiles, Ubuntu and apt, gcc and g++, MinGW-w64, glibc and musl -- are all interesting topics outside the scope of this README.  Would you like to know more?  Search the interweb!*
 
